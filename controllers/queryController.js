@@ -96,17 +96,23 @@ export const fetchAllQueriesByStatus = async (req, res) => {
 
 // Admin: Update the status of a query
 export const updateQueryStatusByAdmin = async (req, res) => {
-  const { queryId, status } = req.body;
+  const { queryId, status, amount } = req.body;
 
   const validStatuses = ['new', 'in_progress', 'resolved'];
   if (!validStatuses.includes(status)) {
     return res.status(400).send('Invalid status. Valid statuses are: new, in_progress, resolved.');
   }
 
+  // Amount validation: Only required if status is 'resolved'
+  if (status === 'resolved' && (amount === undefined || isNaN(amount))) {
+    return res.status(400).send('Amount is required and must be a valid number when resolving the query.');
+  }
+
   try {
-    const result = await updateQueryStatus(queryId, status);
+    const result = await updateQueryStatus(queryId, status, amount);
+
     if (result.affectedRows > 0) {
-      res.status(200).send('Query status updated successfully.');
+      res.status(200).send('Query status and amount updated successfully.');
     } else {
       res.status(404).send('Query not found.');
     }
@@ -115,3 +121,4 @@ export const updateQueryStatusByAdmin = async (req, res) => {
     res.status(500).send('Error updating query status.');
   }
 };
+

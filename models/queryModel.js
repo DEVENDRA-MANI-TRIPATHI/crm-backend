@@ -118,14 +118,29 @@ export const getAllQueriesByStatus = (status) => {
 };
 
 // Update the status of a query by id
-export const updateQueryStatus = (queryId, status) => {
+export const updateQueryStatus = (queryId, status, amount = null) => {
   return new Promise((resolve, reject) => {
-    const sql = `
-      UPDATE queries
-      SET status = ?
-      WHERE id = ?
-    `;
-    db.query(sql, [status, queryId], (err, result) => {
+    let sql, params;
+
+    if (status === 'in_progress') {
+      // Update both status and amount when status is 'in_progress'
+      sql = `
+        UPDATE queries
+        SET status = ?, amount = ?
+        WHERE id = ?
+      `;
+      params = [status, amount, queryId];
+    } else {
+      // Update only the status for other values
+      sql = `
+        UPDATE queries
+        SET status = ?
+        WHERE id = ?
+      `;
+      params = [status, queryId];
+    }
+
+    db.query(sql, params, (err, result) => {
       if (err) {
         reject(err);
       } else {
@@ -134,3 +149,4 @@ export const updateQueryStatus = (queryId, status) => {
     });
   });
 };
+
