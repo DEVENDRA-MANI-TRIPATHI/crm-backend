@@ -96,29 +96,73 @@ export const fetchAllQueriesByStatus = async (req, res) => {
 
 // Admin: Update the status of a query
 export const updateQueryStatusByAdmin = async (req, res) => {
-  const { queryId, status, amount } = req.body;
+  const { queryId, status, amount, paymentLink } = req.body;
 
+  // Validate the provided status
   const validStatuses = ['new', 'in_progress', 'resolved'];
   if (!validStatuses.includes(status)) {
-    return res.status(400).send('Invalid status. Valid statuses are: new, in_progress, resolved.');
-  }
-
-  // Amount validation: Only required if status is 'resolved'
-  if (status === 'resolved' && (amount === undefined || isNaN(amount))) {
-    return res.status(400).send('Amount is required and must be a valid number when resolving the query.');
+    return res.status(400).send({
+      error: 'Invalid status. Valid statuses are: new, in_progress, resolved.'
+    });
   }
 
   try {
-    const result = await updateQueryStatus(queryId, status, amount);
+    if (status === 'in_progress') {
+      // Validate amount and payment link when status is 'in_progress'
+      if (amount === undefined || isNaN(amount) || !paymentLink) {
+        return res.status(400).send({
+          error: 'Amount and payment link are required and must be valid when changing status to in_progress.'
+        });
+      }
 
-    if (result.affectedRows > 0) {
-      res.status(200).send('Query status and amount updated successfully.');
+      // Update status, amount, and payment link
+      const result = await updateQueryStatus(queryId, status, amount, paymentLink);
+
+      if (result.affectedRows > 0) {
+        return res.status(200).send({
+          message: 'Query status, amount, and payment link updated successfully.',
+          paymentLink: paymentLink || null
+        });
+      } else {
+        return res.status(404).send({
+          error: 'Query not found.'
+        });
+      }
+    } else if (status === 'resolved') {
+      // Only update the status to 'resolved'
+      const result = await updateQueryStatus(queryId, status);
+
+      if (result.affectedRows > 0) {
+        return res.status(200).send({
+          message: 'Query status updated to resolved successfully.'
+        });
+      } else {
+        return res.status(404).send({
+          error: 'Query not found.'
+        });
+      }
     } else {
-      res.status(404).send('Query not found.');
+      return res.status(400).send({
+        error: 'No additional action required for the selected status.'
+      });
     }
   } catch (err) {
     console.error('Error updating query status:', err.message);
-    res.status(500).send('Error updating query status.');
+    return res.status(500).send({
+      error: 'Error updating query status.'
+    });
   }
 };
 
+
+// Example function to update the query in the database
+// async function updateQueryStatus(queryId, status, amount, paymentLink) {
+//   // Replace this with your actual database update query
+//   const sql = `
+//     UPDATE queries 
+//     SET status = ?, amount = ?, payment_link = ?
+//     WHERE id = ?
+//   `;
+//   const params = [status, amount, paymentLink, queryId];
+//   return db.execute(sql, params);
+// }
