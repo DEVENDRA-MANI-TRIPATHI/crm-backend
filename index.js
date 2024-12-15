@@ -1,5 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import cors from 'cors';
 import db from './config/dbConfig.js';
 import authRoutes from './routes/authRoutes.js';
 import queryRoutes from './routes/queryRoutes.js';
@@ -11,6 +12,20 @@ dotenv.config();
 const app = express();
 
 app.use(express.json());
+
+const corsOptions = {
+  origin: process.env.CORS_ORIGIN,
+  methods: '*',                   
+  allowedHeaders: '*',            
+  credentials: true,              
+};
+
+// Apply CORS middleware
+app.use(cors(corsOptions));
+
+// Parse JSON requests
+app.use(express.json());
+
 
 // Pass database connection to all requests
 app.use((req, res, next) => {
